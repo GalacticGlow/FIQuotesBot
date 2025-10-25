@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	"log"
 	"math/rand/v2"
 	"net/http"
@@ -27,29 +28,42 @@ var WAITING_FOR_QUOTE = "WAITING FOR QUOTE"
 var WAITING_FOR_DELETE_NAME = "WAITING FOR DELETE NAME"
 var WAITING_FOR_DELETE_CHOICE = "WAITING FOR DELETE CHOICE"
 var USER_PROFQUOTES = make(map[int][]string)
-var USER_PROFNAMES = make(map[int]string)
+var USER_PROFNAMES = make(map[int][]string)
 
 func createDb() (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "quotes.db")
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=require",
+		host, port, user, password, dbname,
+	)
+
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		fmt.Println("Error opening database")
+		fmt.Println("Error opening database:", err)
 		return nil, err
 	}
 
 	query := `CREATE TABLE IF NOT EXISTS quotes (
-    	prof_name TEXT NOT NULL,
-    	quote TEXT NOT NULL
-	)`
+            prof_name TEXT NOT NULL,
+            quote TEXT NOT NULL
+        )`
+
 	_, err = db.Exec(query)
 	if err != nil {
-		fmt.Println("Error creating table")
+		fmt.Println("Error creating table:", err)
 		return nil, err
 	}
+
 	return db, nil
 }
 
 func saveQuote(ctx context.Context, db *sql.DB, profName string, quote string) error {
-	query := `INSERT INTO quotes (prof_name, quote) VALUES (?, ?)`
+	query := `INSERT INTO quotes (prof_name, quote) VALUES ($1, $2)`
 	_, err := db.ExecContext(ctx, query, strings.ToLower(profName), quote)
 	if err != nil {
 		return err
@@ -206,12 +220,18 @@ func main() {
 			fmt.Println(STATES_MAP[userID])
 			if slices.Contains(ADMINS, userID) && msg.Chat.Type == tg.ChatTypePrivate && STATES_MAP[userID] != DEFAULT {
 				if STATES_MAP[userID] == WAITING_FOR_NAME { //admin just pressed the addquotes command
-					USER_PROFNAMES[userID] = msg.Text
+					USER_PROFNAMES[userID] = strings.Split(msg.Text, " ")
 					STATES_MAP[userID] = WAITING_FOR_QUOTE
 					return msg.Answer("Окей, імя є, а тепер скиньте мені саму цитату:").DoVoid(ctx)
 				} else if STATES_MAP[userID] == WAITING_FOR_QUOTE { //sent the professor name, waiting for quote
 					quote := msg.Text
-					err := saveQuote(ctx, db, USER_PROFNAMES[userID], quote)
+					profNames := USER_PROFNAMES[userID]
+					for _, name := range profNames {
+						err := saveQuote(ctx, db, name, quote)
+						if err != nil {
+							return msg.Answer("На жаль цитату не вийшло додати( Напишіть моему розробнику @StarryLuminescence").DoVoid(ctx)
+						}
+					}
 					if err != nil {
 						return msg.Answer("На жаль цитату не вийшло додати( Напишіть моему розробнику @StarryLuminescence").DoVoid(ctx)
 					}
@@ -289,7 +309,11 @@ func main() {
 	if err := poller.Run(ctx); err != nil {
 		log.Fatal(err)
 	}
-	port := "8080"
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	go func() {
 		log.Fatal(http.ListenAndServe(":"+port, nil))
 	}()

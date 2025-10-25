@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"
 	"log"
 	"math/rand/v2"
+	"net/http"
 	"os"
 	"os/signal"
 	"slices"
@@ -288,4 +289,8 @@ func main() {
 	if err := poller.Run(ctx); err != nil {
 		log.Fatal(err)
 	}
+	port := "8080"
+	go func() {
+		log.Fatal(http.ListenAndServe(":"+port, nil))
+	}()
 }

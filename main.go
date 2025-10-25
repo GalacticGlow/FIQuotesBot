@@ -303,7 +303,16 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	// run HTTP server concurrently so your bot can continue polling
 	go func() {
-		log.Fatal(http.ListenAndServe(":"+port, nil))
+		log.Printf("listening on port %s", port)
+		if err := http.ListenAndServe(":"+port, nil); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("http server error: %v", err)
+		}
 	}()
 }

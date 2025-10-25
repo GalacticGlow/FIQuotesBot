@@ -31,21 +31,10 @@ var USER_PROFQUOTES = make(map[int][]string)
 var USER_PROFNAMES = make(map[int][]string)
 
 func createDb() (*sql.DB, error) {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
-
-	dsn := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=require",
-		host, port, user, password, dbname,
-	)
-
-	db, err := sql.Open("postgres", dsn)
+	dbURL := os.Getenv("DATABASE_URL")
+	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		fmt.Println("Error opening database:", err)
-		return nil, err
+		log.Fatal("Error opening database:", err)
 	}
 
 	query := `CREATE TABLE IF NOT EXISTS quotes (

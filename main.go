@@ -294,11 +294,6 @@ func main() {
 
 	poller := tgb.NewPoller(router, client)
 
-	log.Println("Bot is running... Press Ctrl+C to stop.")
-	if err := poller.Run(ctx); err != nil {
-		log.Fatal(err)
-	}
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -308,11 +303,15 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	// run HTTP server concurrently so your bot can continue polling
 	go func() {
 		log.Printf("listening on port %s", port)
 		if err := http.ListenAndServe(":"+port, nil); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("http server error: %v", err)
 		}
 	}()
+
+	log.Println("Bot is running... Press Ctrl+C to stop.")
+	if err := poller.Run(ctx); err != nil {
+		log.Fatal(err)
+	}
 }

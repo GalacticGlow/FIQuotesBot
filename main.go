@@ -191,7 +191,7 @@ func main() {
 			userID := int(msg.From.ID)
 			if slices.Contains(ADMINS, userID) && msg.Chat.Type == tg.ChatTypePrivate {
 				STATES_MAP[userID] = WAITING_FOR_DELETE_NAME
-				return msg.Answer("Треба видалити цитату? А який викладач її придумав?").DoVoid(ctx)
+				return msg.Answer("Треба видалити цитату? А який викладач її придумав? (можна ввести через кому різні відмінки та форми прізвища, так я зможу краще та точніше відповідати)").DoVoid(ctx)
 			}
 			return nil
 		},
@@ -209,7 +209,7 @@ func main() {
 			fmt.Println(STATES_MAP[userID])
 			if slices.Contains(ADMINS, userID) && msg.Chat.Type == tg.ChatTypePrivate && STATES_MAP[userID] != DEFAULT {
 				if STATES_MAP[userID] == WAITING_FOR_NAME { //admin just pressed the addquotes command
-					USER_PROFNAMES[userID] = strings.Split(msg.Text, " ")
+					USER_PROFNAMES[userID] = strings.Split(msg.Text, ",")
 					STATES_MAP[userID] = WAITING_FOR_QUOTE
 					return msg.Answer("Окей, імя є, а тепер скиньте мені саму цитату:").DoVoid(ctx)
 				} else if STATES_MAP[userID] == WAITING_FOR_QUOTE { //sent the professor name, waiting for quote

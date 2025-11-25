@@ -231,7 +231,7 @@ func main() {
 					STATES_MAP[userID] = DEFAULT
 					return msg.Answer("Цитату успішно додав!").DoVoid(ctx)
 				} else if STATES_MAP[userID] == WAITING_FOR_DELETE_NAME {
-					profNameToDelete := msg.Text
+					profNameToDelete := strings.Split(msg.Text, ",")[0]
 					profQuotes, err := getQuotes(ctx, db, profNameToDelete)
 					if err != nil {
 						return msg.Answer("Щось я зламався...(( Напишіть моему розробнику @StarryLuminescence").DoVoid(ctx)
